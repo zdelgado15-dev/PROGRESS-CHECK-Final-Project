@@ -1,10 +1,46 @@
 <?php
 session_start();
+include("config/db.php");
 
 if(!isset($_SESSION['fullname'])){
     header("Location: index.php");
     exit();
 }
+
+/* ===========================
+   DASHBOARD COUNTS
+=========================== */
+
+$totalAssets = mysqli_fetch_assoc(
+    mysqli_query($conn,"SELECT COUNT(*) total FROM assets")
+)['total'];
+
+$poultry = mysqli_fetch_assoc(
+    mysqli_query($conn,"SELECT COUNT(*) total FROM assets WHERE species='Poultry'")
+)['total'];
+
+$swine = mysqli_fetch_assoc(
+    mysqli_query($conn,"SELECT COUNT(*) total FROM assets WHERE species='Swine'")
+)['total'];
+
+$cattle = mysqli_fetch_assoc(
+    mysqli_query($conn,"SELECT COUNT(*) total FROM assets WHERE species='Cattle'")
+)['total'];
+
+$goat = mysqli_fetch_assoc(
+    mysqli_query($conn,"SELECT COUNT(*) total FROM assets WHERE species='Goat'")
+)['total'];
+
+$sheep = mysqli_fetch_assoc(
+    mysqli_query($conn,"SELECT COUNT(*) total FROM assets WHERE species='Sheep'")
+)['total'];
+
+$recentAssets = mysqli_query(
+    $conn,
+    "SELECT * FROM assets
+     ORDER BY created_at DESC
+     LIMIT 5"
+);
 ?>
 
 <!DOCTYPE html>
@@ -38,69 +74,110 @@ body{
 /* ================= SIDEBAR ================= */
 
 .sidebar{
+
     width:250px;
     background:#005612;
     color:white;
-
-    padding:18px;
+    padding:20px;
 
     display:flex;
     flex-direction:column;
-    justify-content:space-between;
+
+    min-height:100vh;
+
 }
+
+
 
 .sidebar-logo{
+
     display:flex;
     align-items:center;
     gap:10px;
-    margin-bottom:25px;
+
+    margin-bottom:30px;
+
 }
+
 
 .sidebar-logo img{
+
     width:45px;
     height:45px;
+
 }
 
-.sidebar-logo h2{
-    font-size:22px;
-}
+
 
 .sidebar ul{
+
     list-style:none;
+
+    flex:1;
+
 }
+
+
 
 .sidebar ul li{
-    padding:12px 14px;
-    border-radius:10px;
+
+    padding:12px;
+
     margin-bottom:8px;
 
-    cursor:pointer;
+    border-radius:10px;
 
-    font-size:16px;
-
-    display:flex;
-    align-items:center;
-    gap:12px;
-
-    transition:.3s;
 }
+
+
 
 .sidebar ul li:hover,
-.active{
+.sidebar ul li.active{
+
     background:#227d33;
+
 }
 
-.logout{
+
+
+.sidebar ul li a{
+
     color:white;
+
     text-decoration:none;
 
-    font-size:16px;
-
     display:flex;
+
     align-items:center;
+
     gap:10px;
 
-    padding:12px 14px;
+}
+
+
+
+.logout{
+
+    margin-top:auto;
+
+    padding:12px;
+
+}
+
+
+
+.logout a{
+
+    color:white;
+
+    text-decoration:none;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
 }
 
 /* ================= MAIN ================= */
@@ -348,78 +425,188 @@ table td{
 <div class="dashboard-container">
 
     <!-- SIDEBAR -->
-    <div class="sidebar">
+<div class="sidebar">
 
-        <div>
 
-            <div class="sidebar-logo">
+    <div class="sidebar-logo">
 
-                <img src="assets/images/adssu_logo.png.png">
+        <img src="assets/images/adssu_logo.png.png">
 
-                <h2>ADSSU-BAP</h2>
+        <h2>ADSSU-BAP</h2>
 
-            </div>
+    </div>
 
-            <ul>
 
-                <li class="active">
-                    <i class="fa-solid fa-table-columns"></i>
-                    Dashboard
-                </li>
 
-                <li>
-                    <i class="fa-solid fa-cube"></i>
-                    Assets
-                </li>
+    <ul>
 
-                <li>
-                    <i class="fa-solid fa-plus"></i>
-                    Add Assets
-                </li>
 
-                <li>
-                    <i class="fa-solid fa-arrow-right-arrow-left"></i>
-                    Transactions
-                </li>
+        <li class="<?php echo basename($_SERVER['PHP_SELF'])=='dashboard.php'?'active':''; ?>">
 
-                <li>
-                    <i class="fa-solid fa-boxes-stacked"></i>
-                    Inventory
-                </li>
+            <a href="dashboard.php">
 
-                <li>
-                    <i class="fa-solid fa-paw"></i>
-                    Species
-                </li>
+                <i class="fa-solid fa-table-columns"></i>
 
-                <li>
-                    <i class="fa-regular fa-file-lines"></i>
-                    Reports
-                </li>
+                Dashboard
 
-                <li>
-                    <i class="fa-solid fa-users"></i>
-                    Users
-                </li>
+            </a>
 
-                <li>
-                    <i class="fa-solid fa-gear"></i>
-                    Settings
-                </li>
+        </li>
 
-            </ul>
 
-        </div>
 
-        <a href="logout.php" class="logout">
+
+        <li class="<?php echo basename($_SERVER['PHP_SELF'])=='assets.php'?'active':''; ?>">
+
+            <a href="assets.php">
+
+                <i class="fa-solid fa-cube"></i>
+
+                Assets
+
+            </a>
+
+        </li>
+
+
+
+
+
+        <li class="<?php echo basename($_SERVER['PHP_SELF'])=='add_asset.php'?'active':''; ?>">
+
+            <a href="add_asset.php">
+
+                <i class="fa-solid fa-plus"></i>
+
+                Add Asset
+
+            </a>
+
+        </li>
+
+
+
+
+
+        <li class="<?php echo basename($_SERVER['PHP_SELF'])=='transactions.php'?'active':''; ?>">
+
+            <a href="transactions.php">
+
+                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+
+                Transactions
+
+            </a>
+
+        </li>
+
+
+
+
+
+        <li class="<?php echo basename($_SERVER['PHP_SELF'])=='inventory.php'?'active':''; ?>">
+
+            <a href="inventory.php">
+
+                <i class="fa-solid fa-boxes-stacked"></i>
+
+                Inventory
+
+            </a>
+
+        </li>
+
+
+
+
+
+        <li class="<?php echo basename($_SERVER['PHP_SELF'])=='species.php'?'active':''; ?>">
+
+            <a href="species.php">
+
+                <i class="fa-solid fa-cow"></i>
+
+                Species
+
+            </a>
+
+        </li>
+
+
+
+
+
+        <li class="<?php echo basename($_SERVER['PHP_SELF'])=='reports.php'?'active':''; ?>">
+
+            <a href="reports.php">
+
+                <i class="fa-solid fa-chart-column"></i>
+
+                Reports
+
+            </a>
+
+        </li>
+
+
+
+
+
+        <li class="<?php echo basename($_SERVER['PHP_SELF'])=='users.php'?'active':''; ?>">
+
+            <a href="users.php">
+
+                <i class="fa-solid fa-users"></i>
+
+                Users
+
+            </a>
+
+        </li>
+
+
+
+
+
+        <li class="<?php echo basename($_SERVER['PHP_SELF'])=='settings.php'?'active':''; ?>">
+
+            <a href="settings.php">
+
+                <i class="fa-solid fa-gear"></i>
+
+                Settings
+
+            </a>
+
+        </li>
+
+
+    </ul>
+
+
+
+
+
+    <div class="logout">
+
+
+        <a href="logout.php">
+
 
             <i class="fa-solid fa-right-from-bracket"></i>
 
+
             Logout
+
 
         </a>
 
+
     </div>
+
+
+
+</div>
 
     <!-- MAIN -->
     <div class="main-content">
@@ -456,93 +643,63 @@ table td{
         </div>
 
         <!-- CARDS -->
-        <div class="cards">
+<div class="cards">
 
-            <div class="card">
+    <div class="card">
+        <h3>Total Assets</h3>
 
-                <h3>Total Livestock</h3>
-
-                <div class="card-flex">
-
-                    <h1>20</h1>
-
-                    <i class="fa-solid fa-warehouse"></i>
-
-                </div>
-
-            </div>
-
-            <div class="card">
-
-                <h3>Poultry</h3>
-
-                <div class="card-flex">
-
-                    <h1>4</h1>
-
-                    <span>🐔</span>
-
-                </div>
-
-            </div>
-
-            <div class="card">
-
-                <h3>Swine</h3>
-
-                <div class="card-flex">
-
-                    <h1>4</h1>
-
-                    <span>🐖</span>
-
-                </div>
-
-            </div>
-
-            <div class="card">
-
-                <h3>Cattle</h3>
-
-                <div class="card-flex">
-
-                    <h1>4</h1>
-
-                    <span>🐄</span>
-
-                </div>
-
-            </div>
-
-            <div class="card">
-
-                <h3>Goat</h3>
-
-                <div class="card-flex">
-
-                    <h1>4</h1>
-
-                    <span>🐐</span>
-
-                </div>
-
-            </div>
-
-            <div class="card">
-
-                <h3>Sheep</h3>
-
-                <div class="card-flex">
-
-                    <h1>4</h1>
-
-                    <span>🐑</span>
-
-                </div>
-
-            </div>
-
+        <div class="card-flex">
+            <h1><?php echo $totalAssets; ?></h1>
+            <i class="fa-solid fa-warehouse"></i>
         </div>
+    </div>
+
+    <div class="card">
+        <h3>Poultry</h3>
+
+        <div class="card-flex">
+            <h1><?php echo $poultry; ?></h1>
+            <span>🐔</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Swine</h3>
+
+        <div class="card-flex">
+            <h1><?php echo $swine; ?></h1>
+            <span>🐖</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Cattle</h3>
+
+        <div class="card-flex">
+            <h1><?php echo $cattle; ?></h1>
+            <span>🐄</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Goat</h3>
+
+        <div class="card-flex">
+            <h1><?php echo $goat; ?></h1>
+            <span>🐐</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Sheep</h3>
+
+        <div class="card-flex">
+            <h1><?php echo $sheep; ?></h1>
+            <span>🐑</span>
+        </div>
+    </div>
+
+</div>
 
         <!-- GRID -->
         <div class="content-grid">
@@ -554,55 +711,59 @@ table td{
 
                 <table>
 
-                    <tr>
-                        <th>Date</th>
-                        <th>Activity</th>
-                        <th>Assets</th>
-                        <th>Qty</th>
-                        <th>Status</th>
-                        <th>By</th>
-                    </tr>
+    <tr>
+        <th>Date</th>
+        <th>Asset</th>
+        <th>Species</th>
+        <th>Quantity</th>
+        <th>Status</th>
+    </tr>
 
-                    <tr>
-                        <td>May 6, 2026</td>
-                        <td>Added</td>
-                        <td>Chicks</td>
-                        <td>2</td>
-                        <td>
-                            <span class="status active">
-                                Active
-                            </span>
-                        </td>
-                        <td>Staff</td>
-                    </tr>
+    <?php while($row=mysqli_fetch_assoc($recentAssets)){ ?>
 
-                    <tr>
-                        <td>May 6, 2026</td>
-                        <td>Sold</td>
-                        <td>Goat</td>
-                        <td>2</td>
-                        <td>
-                            <span class="status completed">
-                                Completed
-                            </span>
-                        </td>
-                        <td>Staff</td>
-                    </tr>
+    <tr>
 
-                    <tr>
-                        <td>May 5, 2026</td>
-                        <td>Transfer</td>
-                        <td>Sheep</td>
-                        <td>3</td>
-                        <td>
-                            <span class="status completed">
-                                Completed
-                            </span>
-                        </td>
-                        <td>Staff</td>
-                    </tr>
+        <td>
+            <?php echo $row['asset_date']; ?>
+        </td>
 
-                </table>
+        <td>
+            <?php echo $row['description']; ?>
+        </td>
+
+        <td>
+            <?php echo $row['species']; ?>
+        </td>
+
+        <td>
+            <?php echo $row['quantity']; ?>
+        </td>
+
+        <td>
+
+            <?php
+
+            if($row['status']=="Alive"){
+                echo "<span class='status active'>Alive</span>";
+            }
+
+            elseif($row['status']=="Sold"){
+                echo "<span class='status completed'>Sold</span>";
+            }
+
+            else{
+                echo "<span class='status'>".$row['status']."</span>";
+            }
+
+            ?>
+
+        </td>
+
+    </tr>
+
+    <?php } ?>
+
+</table>
 
             </div>
 
@@ -649,29 +810,34 @@ table td{
         <!-- QUICK ACTIONS -->
         <div class="quick-actions">
 
-            <div class="action-btn">
+    <a href="add_asset.php"
+       class="action-btn"
+       style="text-decoration:none;color:black;">
 
-                <i class="fa-solid fa-circle-plus"></i>
+        <i class="fa-solid fa-circle-plus"></i>
+        Add Asset
 
-                Add Asset
+    </a>
 
-            </div>
+    <a href="assets.php"
+       class="action-btn"
+       style="text-decoration:none;color:black;">
 
-            <div class="action-btn">
+        <i class="fa-solid fa-boxes-stacked"></i>
+        View Assets
 
-                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+    </a>
 
-                Transaction
+    <a href="assets.php"
+       class="action-btn"
+       style="text-decoration:none;color:black;">
 
-            </div>
+        <i class="fa-solid fa-file-lines"></i>
+        Asset Records
 
-            <div class="action-btn">
+    </a>
 
-                <i class="fa-solid fa-file-lines"></i>
-
-                View Reports
-
-            </div>
+</div>
 
         </div>
 
@@ -681,3 +847,4 @@ table td{
 
 </body>
 </html>
+

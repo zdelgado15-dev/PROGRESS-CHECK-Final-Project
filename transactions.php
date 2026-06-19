@@ -1,68 +1,129 @@
 <?php
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+session_start();
 include("config/db.php");
 
+
 if(!isset($_SESSION['fullname'])){
-    header("Location: index.php");
+    header("Location:index.php");
     exit();
 }
 
 $role = $_SESSION['role'];
 
-$search = "";
 
-if(isset($_GET['search'])){
-    $search = mysqli_real_escape_string($conn,$_GET['search']);
-}
 
 $sql = "
-SELECT * FROM assets
-WHERE
-asset_type LIKE '%$search%'
-OR species LIKE '%$search%'
-OR description LIKE '%$search%'
-OR entry_name LIKE '%$search%'
-OR property_number LIKE '%$search%'
-OR reference_no LIKE '%$search%'
-OR remarks LIKE '%$search%'
-OR status LIKE '%$search%'
-ORDER BY id DESC
+
+SELECT
+id,
+'asset' AS source,
+asset_date AS date,
+'Purchase' AS type,
+description AS asset,
+species,
+quantity AS qty,
+fair_value AS value,
+'Completed' AS status,
+entry_name AS processed
+FROM assets
+
+UNION ALL
+
+SELECT
+ad.id,
+'addition' AS source,
+addition_date,
+addition_type,
+a.description,
+a.species,
+ad.qty,
+ad.amount,
+'Completed',
+a.entry_name
+FROM additions ad
+INNER JOIN assets a
+ON ad.asset_id=a.id
+
+UNION ALL
+
+SELECT
+r.id,
+'reduction' AS source,
+reduction_date,
+reduction_type,
+a.description,
+a.species,
+r.qty,
+r.amount,
+
+CASE
+WHEN reduction_type='Death'
+THEN 'Recorded'
+ELSE 'Completed'
+END,
+
+a.entry_name
+
+FROM reductions r
+INNER JOIN assets a
+ON r.asset_id=a.id
+
+ORDER BY date DESC
+
 ";
 
-$result = mysqli_query($conn,$sql);
+
+
+$result=mysqli_query($conn,$sql);
+
+
 
 ?>
 
+
+
 <!DOCTYPE html>
+
 <html>
 
 <head>
 
-<title>Assets Management</title>
+<title>Transactions</title>
+
 
 <link rel="stylesheet"
 href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
+
 <style>
 
+
 *{
+
 margin:0;
 padding:0;
 box-sizing:border-box;
-font-family:Arial,sans-serif;
+font-family:Arial;
+
 }
+
 
 body{
+
 background:#f3f3f3;
+
 }
 
+
+
 .container{
+
 display:flex;
 height:100vh;
+
 }
+
 
 .sidebar{
 
@@ -171,132 +232,157 @@ height:100vh;
 
 }
 
+
+
 .main{
+
 flex:1;
-padding:20px;
-overflow:auto;
+padding:25px;
+
 }
 
+
+
 .header{
+
 display:flex;
 justify-content:space-between;
 align-items:center;
-margin-bottom:20px;
+
 }
 
-.search-box{
+
+
+.new-btn{
+
+background:#005612;
+color:white;
+padding:12px 20px;
+border-radius:8px;
+text-decoration:none;
+
+}
+
+
+
+.filters{
+
+margin-top:25px;
 display:flex;
-gap:10px;
+gap:20px;
+
 }
 
-.search-box input{
+
+.filters input,
+.filters select{
+
 padding:10px;
-width:300px;
 border:1px solid #ccc;
 border-radius:8px;
+
 }
 
-.search-box button{
-padding:10px 15px;
-background:#005612;
-color:white;
-border:none;
-border-radius:8px;
-cursor:pointer;
-}
 
-.add-btn{
-background:#005612;
-color:white;
-padding:10px 15px;
-text-decoration:none;
-border-radius:8px;
-}
 
-.table-container{
+
+.box{
+
 background:white;
+margin-top:20px;
 padding:20px;
 border-radius:15px;
+
 }
+
+
 
 table{
+
 width:100%;
 border-collapse:collapse;
+
 }
 
-table th{
+
+th{
+
 background:#f5f5f5;
+
 }
 
-table th,
-table td{
+
+
+td,th{
+
 padding:12px;
 border:1px solid #ddd;
-text-align:left;
+
 }
 
-.alive{
-background:#54e96d;
-color:white;
-padding:5px 15px;
-border-radius:8px;
-font-weight:bold;
+
+
+.completed{
+
+background:#d9d4ff;
+padding:5px 10px;
+border-radius:15px;
+
 }
 
-.sold{
-background:#e8ec5d;
-color:black;
-padding:5px 15px;
-border-radius:8px;
-font-weight:bold;
+
+
+.recorded{
+
+background:#ddd;
+padding:5px 10px;
+border-radius:15px;
+
 }
 
-.dead{
-background:#ff6b6b;
-color:white;
-padding:5px 15px;
-border-radius:8px;
-font-weight:bold;
+
+
+.action i{
+
+margin:5px;
+cursor:pointer;
+
 }
 
-.actions a{
-margin-right:12px;
-font-size:18px;
-text-decoration:none;
-transition:0.3s;
-}
 
-.view-btn{
+.eye{
+
 color:#0d6efd;
+
 }
 
-.view-btn:hover{
-color:#0a58ca;
+
+
+.delete{
+
+color:red;
+
 }
 
-.edit-btn{
-color:#fd7e14;
+.action .fa-pen{
+    color:black;
 }
 
-.edit-btn:hover{
-color:#d96a0b;
-}
-
-.delete-btn{
-color:#dc3545;
-}
-
-.delete-btn:hover{
-color:#b02a37;
-}
 
 </style>
 
+
+
 </head>
+
+
 
 <body>
 
+
+
 <div class="container">
+
 
 <div class="sidebar">
 
@@ -481,168 +567,249 @@ color:#b02a37;
 
 </div>
 
+
+
+
+
 <div class="main">
+
+
 
 <div class="header">
 
+
 <div>
 
-<h1>Assets Management</h1>
+<h1>
+Transactions
+</h1>
 
-<p>Manage all biological assets</p>
+<p>
+Purchase, sale, transfer, and mortality records.
+</p>
 
 </div>
 
-<a href="add_asset.php" class="add-btn">
 
-<i class="fa-solid fa-plus"></i>
 
-Add Asset
+<a href="add_asset.php"
+class="new-btn">
+
++ New Transaction
 
 </a>
 
+
 </div>
 
-<form method="GET" class="search-box">
 
-<input
-type="text"
-name="search"
-placeholder="Search assets..."
-value="<?php echo $search; ?>">
 
-<button type="submit">
 
-<i class="fa-solid fa-magnifying-glass"></i>
 
-Search
 
-</button>
 
-</form>
+<div class="filters">
 
-<br>
 
-<div class="table-container">
+<select>
+
+<option>
+All Types
+</option>
+
+<option>
+Purchase
+</option>
+
+<option>
+Sale
+</option>
+
+<option>
+Death
+</option>
+
+
+</select>
+
+
+
+<input type="date">
+
+
+<input type="date">
+
+
+<input type="text"
+placeholder="Search Transaction">
+
+
+
+</div>
+
+
+
+
+
+
+
+<div class="box">
+
+
 
 <table>
 
+
+
 <tr>
 
-<th>ID</th>
 <th>Date</th>
+<th>Type</th>
 <th>Asset</th>
 <th>Species</th>
-<th>Quantity</th>
+<th>Qty</th>
+<th>Value ₱</th>
 <th>Status</th>
-<th>Remarks</th>
-<th>Actions</th>
+<th>Processed</th>
+<th>Action</th>
+
 
 </tr>
+
+
+
+
 
 <?php while($row=mysqli_fetch_assoc($result)){ ?>
 
 <tr>
 
-<td><?php echo $row['id']; ?></td>
+
+
+<td>
+<?php echo date("M j, Y", strtotime($row['date'])); ?>
+</td>
+
+
 
 <td>
 
-<?php
-echo date("M j, Y", strtotime($row['asset_date']));
-?>
+<?php echo $row['type']; ?>
 
 </td>
 
-<td><?php echo $row['description']; ?></td>
 
-<td><?php echo $row['species']; ?></td>
-
-<td><?php echo $row['quantity']; ?></td>
 
 <td>
 
+<?php echo $row['asset']; ?>
+
+</td>
+
+
+
+<td>
+
+<?php echo $row['species']; ?>
+
+</td>
+
+
+
+<td>
+
+<?php echo $row['qty']; ?>
+
+</td>
+
+
+
+<td>
+₱ <?php echo number_format($row['value'],2); ?>
+</td>
+
+
+
+
+<td>
+
+
 <?php
 
-if($row['status']=="Alive"){
-echo "<span class='alive'>Alive</span>";
+if($row['status']=="Completed"){
+
+echo "<span class='completed'>Completed</span>";
+
 }
-elseif($row['status']=="Sold"){
-echo "<span class='sold'>Sold</span>";
-}
+
 else{
-echo "<span class='dead'>".$row['status']."</span>";
+
+echo "<span class='recorded'>Recorded</span>";
+
 }
 
+
 ?>
+
+
+</td>
+
+
 
 <td>
 
-<?php
-echo !empty($row['remarks'])
-? $row['remarks']
-: "-";
-?>
+<?php echo $row['processed']; ?>
 
 </td>
+
+
+
+<td class="action">
+
+<a href="view_transaction.php?id=<?php echo $row['id']; ?>&source=<?php echo $row['source']; ?>">
+    <i class="fa-solid fa-eye eye"></i>
+</a>
+
+<a href="edit_transaction.php?id=<?php echo $row['id']; ?>&source=<?php echo $row['source']; ?>">
+    <i class="fa-solid fa-pen"></i>
+</a>
+
+<?php if($role=="Administrator"){ ?>
+
+<a href="delete_transaction.php?id=<?php echo $row['id']; ?>&source=<?php echo $row['source']; ?>"
+onclick="return confirm('Delete Transaction?')">
+
+<i class="fa-solid fa-trash delete"></i>
+
+</a>
+
+<?php } ?>
+
 </td>
 
-<td class="actions">
 
 
-<!-- VIEW ADMIN + STAFF -->
-
-<a href="view_asset.php?id=<?php echo $row['id']; ?>"
-class="view-btn"
-title="View Asset">
-
-<i class="fa-solid fa-eye"></i>
-
-</a>
-
-
-
-<!-- EDIT ADMIN + STAFF -->
-
-<a href="edit_asset.php?id=<?php echo $row['id']; ?>"
-class="edit-btn"
-title="Edit Asset">
-
-<i class="fa-solid fa-pen"></i>
-
-</a>
-
-
-
-<!-- DELETE ADMIN ONLY -->
-
-<?php if($_SESSION['role']=="Administrator"){ ?>
-
-
-<a href="delete_asset.php?id=<?php echo $row['id']; ?>"
-class="delete-btn"
-title="Delete Asset"
-onclick="return confirm('Delete Asset?')">
-
-<i class="fa-solid fa-trash"></i>
-
-</a>
+</tr>
 
 
 <?php } ?>
 
 
-</td>
-
-<?php } ?>
 
 </table>
 
-</div>
 
 </div>
 
+
+
+
 </div>
+
+
+</div>
+
+
 
 </body>
 

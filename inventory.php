@@ -1,68 +1,144 @@
 <?php
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+session_start();
 include("config/db.php");
 
+
 if(!isset($_SESSION['fullname'])){
-    header("Location: index.php");
+    header("Location:index.php");
     exit();
 }
 
-$role = $_SESSION['role'];
 
-$search = "";
 
-if(isset($_GET['search'])){
-    $search = mysqli_real_escape_string($conn,$_GET['search']);
-}
+// TOTAL OPENING BALANCE
+$opening = mysqli_fetch_assoc(mysqli_query($conn,"
+SELECT SUM(quantity) total
+FROM assets
+"));
+
+$opening_balance = $opening['total'] ?? 0;
+
+
+
+// TOTAL ADDITIONS
+
+$add = mysqli_fetch_assoc(mysqli_query($conn,"
+SELECT SUM(qty) total
+FROM additions
+"));
+
+$total_additions = $add['total'] ?? 0;
+
+
+
+
+// TOTAL REDUCTIONS
+
+$red = mysqli_fetch_assoc(mysqli_query($conn,"
+SELECT SUM(qty) total
+FROM reductions
+"));
+
+$total_reductions = $red['total'] ?? 0;
+
+
+
+
+$current_balance = 
+$opening_balance 
++ 
+$total_additions
+-
+$total_reductions;
+
+
+
+
+// INVENTORY PER SPECIES
 
 $sql = "
-SELECT * FROM assets
-WHERE
-asset_type LIKE '%$search%'
-OR species LIKE '%$search%'
-OR description LIKE '%$search%'
-OR entry_name LIKE '%$search%'
-OR property_number LIKE '%$search%'
-OR reference_no LIKE '%$search%'
-OR remarks LIKE '%$search%'
-OR status LIKE '%$search%'
-ORDER BY id DESC
+
+SELECT
+
+a.species,
+
+SUM(a.quantity) AS balance,
+
+IFNULL((
+    SELECT SUM(ad.qty)
+    FROM additions ad
+    INNER JOIN assets aa
+    ON ad.asset_id = aa.id
+    WHERE aa.species = a.species
+),0) AS additions,
+
+IFNULL((
+    SELECT SUM(r.qty)
+    FROM reductions r
+    INNER JOIN assets rr
+    ON r.asset_id = rr.id
+    WHERE rr.species = a.species
+),0) AS reductions
+
+FROM assets a
+
+GROUP BY a.species
+
 ";
 
-$result = mysqli_query($conn,$sql);
+
+$result=mysqli_query($conn,$sql);
+
+
 
 ?>
 
+
 <!DOCTYPE html>
+
 <html>
 
 <head>
 
-<title>Assets Management</title>
+
+<title>Inventory</title>
+
 
 <link rel="stylesheet"
 href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
+
+
 <style>
 
+
 *{
+
 margin:0;
 padding:0;
 box-sizing:border-box;
-font-family:Arial,sans-serif;
+font-family:Arial;
+
 }
+
 
 body{
+
 background:#f3f3f3;
+
 }
 
+
+
 .container{
+
 display:flex;
 height:100vh;
+
 }
+
+
 
 .sidebar{
 
@@ -171,132 +247,122 @@ height:100vh;
 
 }
 
+
+
+
 .main{
+
 flex:1;
-padding:20px;
-overflow:auto;
+padding:30px;
+
 }
 
-.header{
+
+
+.cards{
+
 display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:20px;
+gap:20px;
+margin-top:20px;
+
 }
 
-.search-box{
-display:flex;
-gap:10px;
-}
 
-.search-box input{
-padding:10px;
-width:300px;
-border:1px solid #ccc;
-border-radius:8px;
-}
 
-.search-box button{
-padding:10px 15px;
-background:#005612;
-color:white;
-border:none;
-border-radius:8px;
-cursor:pointer;
-}
+.card{
 
-.add-btn{
-background:#005612;
-color:white;
-padding:10px 15px;
-text-decoration:none;
-border-radius:8px;
-}
-
-.table-container{
 background:white;
 padding:20px;
+width:220px;
 border-radius:15px;
+
 }
+
+
+
+.card h2{
+
+font-size:30px;
+
+}
+
+
+
+.green{
+
+color:green;
+
+}
+
+
+.red{
+
+color:red;
+
+}
+
+
+
+.table-box{
+
+background:white;
+padding:20px;
+margin-top:30px;
+border-radius:15px;
+
+}
+
+
 
 table{
+
 width:100%;
 border-collapse:collapse;
+
 }
 
-table th{
+
+
+th{
+
 background:#f5f5f5;
+
 }
 
-table th,
-table td{
+
+
+td,th{
+
 padding:12px;
 border:1px solid #ddd;
-text-align:left;
+
+text-align:center;
+
 }
 
-.alive{
-background:#54e96d;
-color:white;
-padding:5px 15px;
-border-radius:8px;
+
+
+.total{
+
+background:#8be28b;
 font-weight:bold;
+
 }
 
-.sold{
-background:#e8ec5d;
-color:black;
-padding:5px 15px;
-border-radius:8px;
-font-weight:bold;
-}
-
-.dead{
-background:#ff6b6b;
-color:white;
-padding:5px 15px;
-border-radius:8px;
-font-weight:bold;
-}
-
-.actions a{
-margin-right:12px;
-font-size:18px;
-text-decoration:none;
-transition:0.3s;
-}
-
-.view-btn{
-color:#0d6efd;
-}
-
-.view-btn:hover{
-color:#0a58ca;
-}
-
-.edit-btn{
-color:#fd7e14;
-}
-
-.edit-btn:hover{
-color:#d96a0b;
-}
-
-.delete-btn{
-color:#dc3545;
-}
-
-.delete-btn:hover{
-color:#b02a37;
-}
 
 </style>
 
+
 </head>
+
+
 
 <body>
 
+
 <div class="container">
+
+
 
 <div class="sidebar">
 
@@ -481,168 +547,287 @@ color:#b02a37;
 
 </div>
 
+
+
+
+
 <div class="main">
 
-<div class="header">
 
-<div>
+<h1>
+Inventory
+</h1>
 
-<h1>Assets Management</h1>
 
-<p>Manage all biological assets</p>
+<p>
+Opening balance, additions, reductions, and current livestock count
+</p>
+
+
+
+
+<div class="cards">
+
+
+
+<div class="card">
+
+<p>
+Current Livestock
+</p>
+
+<h2>
+
+<?php echo $opening_balance; ?>
+
+</h2>
 
 </div>
 
-<a href="add_asset.php" class="add-btn">
 
-<i class="fa-solid fa-plus"></i>
 
-Add Asset
 
-</a>
+<div class="card">
+
+<p>
+Total Additions
+</p>
+
+<h2 class="green">
+
++<?php echo $total_additions; ?>
+
+</h2>
 
 </div>
 
-<form method="GET" class="search-box">
 
-<input
-type="text"
-name="search"
-placeholder="Search assets..."
-value="<?php echo $search; ?>">
 
-<button type="submit">
 
-<i class="fa-solid fa-magnifying-glass"></i>
 
-Search
+<div class="card">
 
-</button>
+<p>
+Total Reductions
+</p>
 
-</form>
+<h2 class="red">
+
+-<?php echo $total_reductions; ?>
+
+</h2>
+
+</div>
+
+
+
+
+<div class="card">
+
+<p>
+Current Balance
+</p>
+
+<h2>
+
+<?php echo $current_balance; ?>
+
+</h2>
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+
+<div class="table-box">
+
+
+<h2>
+Inventory by Species
+</h2>
+
 
 <br>
 
-<div class="table-container">
+
 
 <table>
 
+
 <tr>
 
-<th>ID</th>
-<th>Date</th>
-<th>Asset</th>
-<th>Species</th>
-<th>Quantity</th>
-<th>Status</th>
-<th>Remarks</th>
-<th>Actions</th>
+<th>
+Species
+</th>
+
+<th>
+Opening
+</th>
+
+<th>
+Additions
+</th>
+
+<th>
+Reductions
+</th>
+
+<th>
+Balance
+</th>
+
 
 </tr>
 
-<?php while($row=mysqli_fetch_assoc($result)){ ?>
+
+
+<?php
+
+
+$grand_open=0;
+$grand_add=0;
+$grand_red=0;
+
+
+
+while($row=mysqli_fetch_assoc($result)){
+
+
+
+$balance = $row['balance'];
+
+
+
+$grand_open += $row['balance'];
+$grand_add += $row['additions'];
+$grand_red += $row['reductions'];
+
+
+
+?>
+
+
 
 <tr>
 
-<td><?php echo $row['id']; ?></td>
 
 <td>
 
-<?php
-echo date("M j, Y", strtotime($row['asset_date']));
-?>
+<?php echo $row['species']; ?>
 
 </td>
 
-<td><?php echo $row['description']; ?></td>
 
-<td><?php echo $row['species']; ?></td>
 
-<td><?php echo $row['quantity']; ?></td>
+<td>
+<?php echo $row['balance']; ?>
+</td>
+
+
+
+<td class="green">
+
++<?php echo $row['additions']; ?>
+
+</td>
+
+
+
+<td class="red">
+
+-<?php echo $row['reductions']; ?>
+
+</td>
+
+
+
 
 <td>
 
-<?php
-
-if($row['status']=="Alive"){
-echo "<span class='alive'>Alive</span>";
-}
-elseif($row['status']=="Sold"){
-echo "<span class='sold'>Sold</span>";
-}
-else{
-echo "<span class='dead'>".$row['status']."</span>";
-}
-
-?>
-
-<td>
-
-<?php
-echo !empty($row['remarks'])
-? $row['remarks']
-: "-";
-?>
+<?php echo $balance; ?>
 
 </td>
-</td>
-
-<td class="actions">
-
-
-<!-- VIEW ADMIN + STAFF -->
-
-<a href="view_asset.php?id=<?php echo $row['id']; ?>"
-class="view-btn"
-title="View Asset">
-
-<i class="fa-solid fa-eye"></i>
-
-</a>
 
 
 
-<!-- EDIT ADMIN + STAFF -->
+</tr>
 
-<a href="edit_asset.php?id=<?php echo $row['id']; ?>"
-class="edit-btn"
-title="Edit Asset">
-
-<i class="fa-solid fa-pen"></i>
-
-</a>
-
-
-
-<!-- DELETE ADMIN ONLY -->
-
-<?php if($_SESSION['role']=="Administrator"){ ?>
-
-
-<a href="delete_asset.php?id=<?php echo $row['id']; ?>"
-class="delete-btn"
-title="Delete Asset"
-onclick="return confirm('Delete Asset?')">
-
-<i class="fa-solid fa-trash"></i>
-
-</a>
 
 
 <?php } ?>
 
 
+
+
+
+<tr class="total">
+
+
+<td>
+
+GRAND TOTAL
+
 </td>
 
-<?php } ?>
+
+<td>
+
+<?php echo $grand_open; ?>
+
+</td>
+
+
+
+<td>
+
++<?php echo $grand_add; ?>
+
+</td>
+
+
+
+<td>
+
+-<?php echo $grand_red; ?>
+
+</td>
+
+
+
+
+<td>
+
+<?php echo $grand_open; ?>
+
+</td>
+
+
+</tr>
+
+
 
 </table>
 
-</div>
+
+
 
 </div>
 
+
+
+
+
 </div>
+
+
+</div>
+
 
 </body>
 

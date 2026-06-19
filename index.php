@@ -4,29 +4,31 @@ include("config/db.php");
 
 if(isset($_POST['login'])){
 
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-    $role = $_POST['role'];
+    $username = mysqli_real_escape_string($conn,$_POST['username']);
+    $password = mysqli_real_escape_string($conn,$_POST['password']);
 
     $query = "SELECT * FROM users
               WHERE username='$username'
-              AND password='$password'
-              AND role='$role'";
+              AND password='$password'";
 
-    $result = mysqli_query($conn, $query);
+    $result = mysqli_query($conn,$query);
 
     if(mysqli_num_rows($result) > 0){
 
         $row = mysqli_fetch_assoc($result);
 
+        $_SESSION['id'] = $row['id'];
         $_SESSION['fullname'] = $row['fullname'];
         $_SESSION['role'] = $row['role'];
+        $_SESSION['assigned_species'] = $row['assigned_species'];
 
         header("Location: dashboard.php");
         exit();
 
     }else{
-        $error = "Invalid Login Credentials";
+
+        $error = "Invalid Username or Password";
+
     }
 }
 ?>
